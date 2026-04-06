@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trading-system"
+version = "0.1.0"
+description = "A-share intelligent trading decision system"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas",
+    "numpy",
+    "scipy",
+    "sqlalchemy>=2.0",
+    "psycopg2-binary",
+    "loguru",
+    "pydantic-settings",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["trading_system*"]

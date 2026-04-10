@@ -20,7 +20,7 @@ class EventDrivenStrategy:
     def __init__(self, db_engine):
         self.engine = db_engine
         self.lookback_days = 5
-        self.min_net_buy = 500  # 500万 = 5M yuan
+        self.min_net_buy = 5_000_000  # 500万元 (data in events.content is stored in yuan)
 
     def generate(self, trade_date: date, factor_df: pd.DataFrame) -> list[Signal]:
         """Generate signals from Dragon-Tiger List events in database."""
@@ -82,7 +82,7 @@ class EventDrivenStrategy:
             stock_lhb = lhb_df[lhb_df['code'] == code].sort_values('event_date', ascending=False).iloc[0]
 
             # Calculate confidence: higher for more appearances and larger net buy
-            confidence = min(0.5 + count * 0.1 + float(stock_lhb['net_buy']) / 10000 * 0.05, 0.95)
+            confidence = min(0.5 + count * 0.1 + float(stock_lhb['net_buy']) / 1e8 * 0.05, 0.95)
 
             signal = Signal(
                 trade_date=trade_date,

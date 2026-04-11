@@ -121,3 +121,46 @@ def calc_dividend_yield(dividend_df: pd.DataFrame, valuation_df: pd.DataFrame) -
     price = pd.to_numeric(valuation_df["latest_price"], errors="coerce")
     dps, price = dps.align(price, join="inner")
     return safe_div_series(dps, price)
+
+
+# --- New fundamental factors ---
+
+def calc_roa(income_df: pd.DataFrame, balance_df: pd.DataFrame) -> pd.Series:
+    """Return on Assets: net_profit / total_assets."""
+    if income_df.empty or balance_df.empty:
+        return pd.Series(dtype=float)
+    np_ = pd.to_numeric(income_df["net_profit"], errors="coerce")
+    assets = pd.to_numeric(balance_df["assets_total"], errors="coerce")
+    np_, assets = np_.align(assets, join="inner")
+    return safe_div_series(np_, assets)
+
+
+def calc_current_ratio(balance_df: pd.DataFrame) -> pd.Series:
+    """Current ratio: total_current_assets / current_total_debt."""
+    if balance_df.empty:
+        return pd.Series(dtype=float)
+    current_assets = pd.to_numeric(balance_df.get("total_current_assets", pd.Series(dtype=float)), errors="coerce")
+    current_debt = pd.to_numeric(balance_df.get("current_total_debt", pd.Series(dtype=float)), errors="coerce")
+    return safe_div_series(current_assets, current_debt)
+
+
+def calc_peg(valuation_df: pd.DataFrame, summary_df: pd.DataFrame) -> pd.Series:
+    """PEG: PE_TTM / earnings_growth. Lower PEG = cheaper growth."""
+    if valuation_df.empty or summary_df.empty:
+        return pd.Series(dtype=float)
+    pe = pd.to_numeric(valuation_df.get("pe_ttm", pd.Series(dtype=float)), errors="coerce")
+    growth = pd.to_numeric(summary_df.get("earnings_growth", pd.Series(dtype=float)), errors="coerce")
+    pe, growth = pe.align(growth, join="inner")
+    # Only meaningful when PE > 0 and growth > 0
+    result = safe_div_series(pe, growth)
+    result[(pe <= 0) | (growth <= 0)] = np.nan
+    return result
+
+
+def calc_market_cap_pct(valuation_df: pd.DataFrame) -> pd.Series:
+    """Market cap percentile rank (cross-sectional). Range: 0-1."""
+    if valuation_df.empty or "total_market_cap" not in valuation_df.columns:
+        return pd.Series(dtype=float)
+    mcap = pd.to_numeric(valuation_df["total_market_cap"], errors="coerce")
+    return mcap.rank(pct=True)
+

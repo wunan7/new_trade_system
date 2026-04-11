@@ -77,3 +77,19 @@ register_factor("margin_chg_rate", FactorCategory.MONEY_FLOW, "5日融资余额�
 register_factor("sentiment_score", FactorCategory.SENTIMENT, "Composite sentiment from TrendRadar", [], nullable=True)
 register_factor("news_heat", FactorCategory.SENTIMENT, "News heat score from TrendRadar", [], nullable=True)
 register_factor("news_mention_count", FactorCategory.SENTIMENT, "Number of news mentions in past 24h", [], nullable=True)
+
+# New Technical (4)
+register_factor("amplitude_20d", FactorCategory.TECHNICAL, "20-day average amplitude", ["stock_daily"])
+register_factor("upper_shadow_ratio", FactorCategory.TECHNICAL, "20-day average upper shadow ratio", ["stock_daily"])
+register_factor("ma_alignment", FactorCategory.TECHNICAL, "Moving average alignment score (0-3)", ["stock_daily"])
+register_factor("volume_price_corr", FactorCategory.TECHNICAL, "20-day volume-price correlation", ["stock_daily"])
+
+# New Fundamental (4)
+register_factor("roa", FactorCategory.FUNDAMENTAL, "Return on Assets", ["financial_income", "financial_balance"])
+register_factor("current_ratio", FactorCategory.FUNDAMENTAL, "Current ratio", ["financial_balance"])
+register_factor("peg", FactorCategory.FUNDAMENTAL, "PEG ratio", ["stock_valuation", "financial_summary"], nullable=True)
+register_factor("market_cap_pct", FactorCategory.FUNDAMENTAL, "Market cap percentile rank", ["stock_valuation"], nullable=True)
+
+# New Money Flow (2)
+register_factor("big_order_net_ratio", FactorCategory.MONEY_FLOW, "大单净流入占成交额比", ["money_flow", "stock_daily"])
+register_factor("consecutive_main_inflow", FactorCategory.MONEY_FLOW, "主力连续净流入天数", ["money_flow"])

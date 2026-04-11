@@ -142,3 +142,51 @@ def calc_margin_chg_rate(mf_df: pd.DataFrame, n: int = 5) -> pd.Series:
 
     cur_bal, prev_bal = cur_bal.align(prev_bal, join="inner")
     return safe_div_series(cur_bal - prev_bal, prev_bal)
+
+
+# --- New money flow factors ---
+
+def calc_big_order_net_ratio(mf_df: pd.DataFrame, daily_amount: pd.Series) -> pd.Series:
+    """Big order net inflow ratio: (super_big_net + big_net) / daily_amount.
+
+    Measures large institutional order flow as fraction of total trading.
+    """
+    if mf_df.empty or daily_amount.empty:
+        return pd.Series(dtype=float)
+
+    latest_date = mf_df["trade_date"].max()
+    latest = mf_df[mf_df["trade_date"] == latest_date].set_index("code")
+
+    super_big = pd.to_numeric(latest.get("super_big_net", pd.Series(dtype=float)), errors="coerce").fillna(0)
+    big = pd.to_numeric(latest.get("big_net", pd.Series(dtype=float)), errors="coerce").fillna(0)
+    big_total = super_big + big
+
+    amount = pd.to_numeric(daily_amount, errors="coerce")
+    big_total, amount = big_total.align(amount, join="inner")
+    return safe_div_series(big_total, amount)
+
+
+def calc_consecutive_main_inflow(mf_df: pd.DataFrame, n: int = 20) -> pd.Series:
+    """Count of consecutive latest days with positive main_net_inflow (up to n days).
+
+    Higher value = sustained institutional buying pressure.
+    """
+    if mf_df.empty or "main_net_inflow" not in mf_df.columns:
+        return pd.Series(dtype=float)
+
+    dates = sorted(mf_df["trade_date"].unique())
+    recent_dates = dates[-n:] if len(dates) >= n else dates
+
+    def _count_consecutive(group):
+        group = group.sort_values("trade_date", ascending=False)
+        inflow = pd.to_numeric(group["main_net_inflow"], errors="coerce")
+        count = 0
+        for val in inflow:
+            if pd.isna(val) or val <= 0:
+                break
+            count += 1
+        return float(count)
+
+    recent = mf_df[mf_df["trade_date"].isin(recent_dates)]
+    return recent.groupby("code").apply(_count_consecutive).astype(float)
+

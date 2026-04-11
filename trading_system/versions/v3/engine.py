@@ -1,7 +1,6 @@
 """Backtest engine: replay historical trading days through the full pipeline in memory."""
 from datetime import date
 
-import numpy as np
 import pandas as pd
 from loguru import logger
 from sqlalchemy import text
@@ -186,29 +185,6 @@ class BacktestEngine:
 
         # Fill entry prices
         prices = self._load_prices(trade_date)
-
-        # IC/IR confidence adjustment
-        from trading_system.signals.generator import IC_WEIGHTS
-        zscore_data = {}
-        if "factors_json" in factor_df.columns:
-            for code in factor_df.index:
-                fj = factor_df.at[code, "factors_json"]
-                if isinstance(fj, dict) and "zscore" in fj:
-                    zscore_data[code] = fj["zscore"]
-        if zscore_data:
-            zscore_df = pd.DataFrame.from_dict(zscore_data, orient="index")
-            for sig in aggregated:
-                if sig.stock_code not in zscore_df.index:
-                    continue
-                row = zscore_df.loc[sig.stock_code]
-                ws, tw = 0.0, 0.0
-                for fn, iw in IC_WEIGHTS.items():
-                    if fn in row.index and pd.notna(row[fn]):
-                        ws += float(row[fn]) * iw
-                        tw += abs(iw)
-                if tw > 0:
-                    sig.confidence = float(np.clip(sig.confidence + (ws / tw) * 0.1, 0.3, 0.95))
-
         for sig in aggregated:
             if (sig.entry_price is None or sig.entry_price <= 0) and sig.stock_code in prices:
                 sig.entry_price = prices[sig.stock_code]
@@ -303,15 +279,10 @@ class BacktestEngine:
             SELECT stock_code, momentum_5d, momentum_20d, momentum_60d,
                    volatility_20d, volatility_60d, atr_14d, volume_ratio_5d,
                    turnover_dev, macd_signal, adx, bb_width, rs_vs_index, obv_slope,
-                   amplitude_20d, upper_shadow_ratio, ma_alignment, volume_price_corr,
                    roe, gross_margin, net_margin, debt_ratio, revenue_growth, profit_growth,
                    ocf_to_profit, accrual_ratio, goodwill_ratio,
                    pe_ttm, pb, ps_ttm, dividend_yield,
-                   roa, current_ratio, peg, market_cap_pct,
-                   north_flow_chg, north_days, main_net_ratio, margin_chg_rate,
-                   big_order_net_ratio, consecutive_main_inflow,
-                   sentiment_score, news_heat, news_mention_count,
-                   factors_json
+                   sentiment_score, news_heat, news_mention_count
             FROM factor_cache WHERE trade_date = :td
         """
         df = pd.read_sql(text(sql), self.engine, params={"td": trade_date})

@@ -95,3 +95,40 @@ def obv_slope(close: pd.Series, volume: pd.Series, n: int = 20) -> pd.Series:
             return np.nan
 
     return obv.rolling(n).apply(_rolling_slope, raw=False)
+
+
+# --- New technical factors ---
+
+def amplitude_nd(high: pd.Series, low: pd.Series, close: pd.Series, n: int = 20) -> pd.Series:
+    """N-day average amplitude: mean((high - low) / prev_close)."""
+    prev_close = close.shift(1)
+    daily_amp = (high - low) / prev_close.replace(0, np.nan)
+    return daily_amp.rolling(n).mean()
+
+
+def upper_shadow_ratio(open_: pd.Series, high: pd.Series, close: pd.Series,
+                       low: pd.Series, n: int = 20) -> pd.Series:
+    """N-day average upper shadow ratio: (high - max(open, close)) / (high - low)."""
+    body_top = pd.concat([open_, close], axis=1).max(axis=1)
+    hl_range = (high - low).replace(0, np.nan)
+    shadow = (high - body_top) / hl_range
+    return shadow.rolling(n).mean()
+
+
+def ma_alignment(close: pd.Series) -> pd.Series:
+    """Moving average alignment score: count of MA5>MA10>MA20>MA60 conditions met (0-3)."""
+    ma5 = close.rolling(5).mean()
+    ma10 = close.rolling(10).mean()
+    ma20 = close.rolling(20).mean()
+    ma60 = close.rolling(60).mean()
+    score = (ma5 > ma10).astype(float) + (ma10 > ma20).astype(float) + (ma20 > ma60).astype(float)
+    # Set NaN where ma60 is NaN (warmup period)
+    score[ma60.isna()] = np.nan
+    return score
+
+
+def volume_price_corr(close: pd.Series, volume: pd.Series, n: int = 20) -> pd.Series:
+    """Rolling correlation between close price changes and volume over n days."""
+    ret = close.pct_change()
+    return ret.rolling(n).corr(volume)
+

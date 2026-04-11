@@ -36,15 +36,18 @@ class FactorPipeline:
         "volatility_20d", "volatility_60d", "atr_14d",
         "volume_ratio_5d", "turnover_dev", "macd_signal",
         "adx", "bb_width", "rs_vs_index", "obv_slope",
+        "amplitude_20d", "upper_shadow_ratio", "ma_alignment", "volume_price_corr",
     ]
     FUNDAMENTAL_FACTORS = [
         "roe", "gross_margin", "net_margin", "debt_ratio",
         "revenue_growth", "profit_growth",
         "ocf_to_profit", "accrual_ratio", "goodwill_ratio",
         "pe_ttm", "pb", "ps_ttm", "dividend_yield",
+        "roa", "current_ratio", "peg", "market_cap_pct",
     ]
     MONEY_FLOW_FACTORS = [
         "north_flow_chg", "north_days", "main_net_ratio", "margin_chg_rate",
+        "big_order_net_ratio", "consecutive_main_inflow",
     ]
     SENTIMENT_FACTORS = [
         "sentiment_score", "news_heat", "news_mention_count",
@@ -219,6 +222,13 @@ class FactorPipeline:
             # OBV Slope
             row["obv_slope"] = self._last_value(tech.obv_slope(close, volume))
 
+            # New technical factors
+            row["amplitude_20d"] = self._last_value(tech.amplitude_nd(high, low, close, 20))
+            open_ = df["open"] if "open" in df.columns else close
+            row["upper_shadow_ratio"] = self._last_value(tech.upper_shadow_ratio(open_, high, close, low, 20))
+            row["ma_alignment"] = self._last_value(tech.ma_alignment(close))
+            row["volume_price_corr"] = self._last_value(tech.volume_price_corr(close, volume, 20))
+
             rows.append(row)
 
         if not rows:
@@ -263,6 +273,19 @@ class FactorPipeline:
         if not dividend_df.empty and not valuation_df.empty:
             factors["dividend_yield"] = fund.calc_dividend_yield(dividend_df, valuation_df)
 
+        # New fundamental factors
+        if not income_df.empty and not balance_df.empty:
+            factors["roa"] = fund.calc_roa(income_df, balance_df)
+
+        if not balance_df.empty:
+            factors["current_ratio"] = fund.calc_current_ratio(balance_df)
+
+        if not valuation_df.empty and not summary_df.empty:
+            factors["peg"] = fund.calc_peg(valuation_df, summary_df)
+
+        if not valuation_df.empty:
+            factors["market_cap_pct"] = fund.calc_market_cap_pct(valuation_df)
+
         if not factors:
             return pd.DataFrame()
 
@@ -282,6 +305,10 @@ class FactorPipeline:
         factors["north_days"] = mflow.calc_north_days(mf_df)
         factors["main_net_ratio"] = mflow.calc_main_net_ratio(mf_df, daily_amount)
         factors["margin_chg_rate"] = mflow.calc_margin_chg_rate(mf_df)
+
+        # New money flow factors
+        factors["big_order_net_ratio"] = mflow.calc_big_order_net_ratio(mf_df, daily_amount)
+        factors["consecutive_main_inflow"] = mflow.calc_consecutive_main_inflow(mf_df)
 
         # Remove empty or all-NaN series
         factors = {k: v for k, v in factors.items() if not v.empty and v.notna().any()}

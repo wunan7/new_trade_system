@@ -93,3 +93,4 @@ register_factor("market_cap_pct", FactorCategory.FUNDAMENTAL, "Market cap percen
 # New Money Flow (2)
 register_factor("big_order_net_ratio", FactorCategory.MONEY_FLOW, "大单净流入占成交额比", ["money_flow", "stock_daily"])
 register_factor("consecutive_main_inflow", FactorCategory.MONEY_FLOW, "主力连续净流入天数", ["money_flow"])
+register_factor("margin_buy_ratio", FactorCategory.MONEY_FLOW, "融资买入占成交额比", ["money_flow", "stock_daily"])

@@ -60,6 +60,7 @@ class FactorCache(Base, TimestampMixin):
     # New money flow factors (2)
     big_order_net_ratio = Column(NUMERIC(20, 6))
     consecutive_main_inflow = Column(NUMERIC(20, 6))
+    margin_buy_ratio = Column(NUMERIC(20, 6))
     # Sentiment factors (3)
     sentiment_score = Column(NUMERIC(20, 6))
     news_heat = Column(NUMERIC(20, 6))

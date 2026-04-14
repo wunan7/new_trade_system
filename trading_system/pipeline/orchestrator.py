@@ -47,7 +47,7 @@ class FactorPipeline:
     ]
     MONEY_FLOW_FACTORS = [
         "north_flow_chg", "north_days", "main_net_ratio", "margin_chg_rate",
-        "big_order_net_ratio", "consecutive_main_inflow",
+        "big_order_net_ratio", "consecutive_main_inflow", "margin_buy_ratio",
     ]
     SENTIMENT_FACTORS = [
         "sentiment_score", "news_heat", "news_mention_count",
@@ -309,6 +309,7 @@ class FactorPipeline:
         # New money flow factors
         factors["big_order_net_ratio"] = mflow.calc_big_order_net_ratio(mf_df, daily_amount)
         factors["consecutive_main_inflow"] = mflow.calc_consecutive_main_inflow(mf_df)
+        factors["margin_buy_ratio"] = mflow.calc_margin_buy_ratio(mf_df, daily_amount)
 
         # Remove empty or all-NaN series
         factors = {k: v for k, v in factors.items() if not v.empty and v.notna().any()}

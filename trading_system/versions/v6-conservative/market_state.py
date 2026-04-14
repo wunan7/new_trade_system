@@ -94,12 +94,18 @@ class MarketStateDetector:
         # ---- 6. Limit ratio (up_limit - down_limit) / total -------------
         limit_score = self._calc_limit_ratio(trade_date)
 
+        # ---- 7. Sentiment (TrendRadar market_sentiment_score) -----------
+        sentiment_score = self._calc_sentiment_dimension(trade_date)
+
+        # ---- 8. Macro (PMI trend) ----------------------------------------
+        macro_score = self._calc_macro_dimension(trade_date)
+
         # ---- Combine all dimensions -------------------------------------
-        # Trend + breadth + north → overall trend (BULL/NEUTRAL/BEAR)
-        combined_trend_score = trend_score + breadth_score + north_score
-        if combined_trend_score >= 3:
+        # Trend + breadth + north + sentiment + macro → overall trend
+        combined_trend_score = trend_score + breadth_score + north_score + sentiment_score + macro_score
+        if combined_trend_score >= 4:  # 8 dimensions → higher threshold
             trend = "BULL"
-        elif combined_trend_score <= -3:
+        elif combined_trend_score <= -4:
             trend = "BEAR"
         else:
             trend = "NEUTRAL"

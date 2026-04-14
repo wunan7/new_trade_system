@@ -231,15 +231,16 @@ def main():
     if args.date:
         trade_date = date.fromisoformat(args.date)
     else:
+        # Check if today is a trading day first
+        from trading_system.utils.trade_calendar import is_trading_day, get_latest_trading_day
+        today = date.today()
+        if not is_trading_day(today):
+            logger.info(f"{today} is not a trading day (weekend/holiday). Skipping.")
+            return
+
         with engine.connect() as conn:
             result = conn.execute(text("SELECT MAX(trade_date) FROM stock_daily"))
             trade_date = result.fetchone()[0]
-
-    # Check if today is a trading day (skip weekends/holidays)
-    today = date.today()
-    if not args.date and trade_date < today - timedelta(days=3):
-        logger.info(f"Latest data is {trade_date}, too old — likely not a trading day. Skipping.")
-        return
 
     logger.info(f"Running daily pipeline for {trade_date}")
     run_daily(trade_date, skip_factors=args.skip_factors, skip_signals=args.skip_signals)

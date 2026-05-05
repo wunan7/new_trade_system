@@ -106,26 +106,26 @@ class TestDrawdownMonitor:
 
     def test_yellow(self):
         dm = DrawdownMonitor(1_000_000)
-        level = dm.update(910_000)  # 9% drawdown
+        level = dm.update(870_000)  # 13% drawdown
         assert level == DrawdownLevel.YELLOW
-        assert dm.allows_new_positions() is False
-        assert dm.get_position_limit_override() is None  # yellow doesn't force reduce
+        assert dm.allows_new_positions() is True
+        assert dm.get_position_limit_override() == 0.80
 
     def test_orange(self):
         dm = DrawdownMonitor(1_000_000)
-        level = dm.update(870_000)  # 13% drawdown
+        level = dm.update(840_000)  # 16% drawdown
         assert level == DrawdownLevel.ORANGE
         assert dm.get_position_limit_override() == 0.50
 
     def test_red(self):
         dm = DrawdownMonitor(1_000_000)
-        level = dm.update(830_000)  # 17% drawdown
+        level = dm.update(790_000)  # 21% drawdown
         assert level == DrawdownLevel.RED
         assert dm.get_position_limit_override() == 0.20
 
     def test_circuit_break(self):
         dm = DrawdownMonitor(1_000_000)
-        level = dm.update(810_000)  # 19% drawdown
+        level = dm.update(740_000)  # 26% drawdown
         assert level == DrawdownLevel.CIRCUIT_BREAK
         assert dm.get_position_limit_override() == 0.0
 
@@ -133,7 +133,7 @@ class TestDrawdownMonitor:
         dm = DrawdownMonitor(1_000_000)
         dm.update(1_100_000)  # new high
         assert dm.high_water_mark == 1_100_000
-        level = dm.update(1_000_000)  # 9% from peak
+        level = dm.update(960_000)  # 12.7% from peak
         assert level == DrawdownLevel.YELLOW
 
 
@@ -180,6 +180,24 @@ class TestPositionSizer:
         sizer = PositionSizer(1_000_000)
         portfolio = _MockPortfolio(0.0, 1_000_000)
         orders = sizer.size([], MarketState.BULL_LOW, portfolio)
+        assert orders == []
+
+    def test_order_below_minimum_amount_is_skipped(self):
+        sizer = PositionSizer(1_000_000)
+        sig = self._make_signal(price=20.0, confidence=0.7)
+        portfolio = _MockPortfolio(0.0, 100_000)
+
+        orders = sizer.size([sig], MarketState.NEUTRAL_LOW, portfolio)
+
+        assert orders == []
+
+    def test_low_price_small_order_is_skipped(self):
+        sizer = PositionSizer(1_000_000)
+        sig = self._make_signal(price=7.5, confidence=0.3, direction=0.2)
+        portfolio = _MockPortfolio(0.0, 100_000)
+
+        orders = sizer.size([sig], MarketState.NEUTRAL_LOW, portfolio)
+
         assert orders == []
 
 
